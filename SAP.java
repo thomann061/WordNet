@@ -8,6 +8,9 @@ package a06;
 import edu.princeton.cs.algs4.BreadthFirstDirectedPaths;
 import edu.princeton.cs.algs4.Digraph;
 import edu.princeton.cs.algs4.DirectedCycle;
+import edu.princeton.cs.introcs.In;
+import edu.princeton.cs.introcs.StdIn;
+import edu.princeton.cs.introcs.StdOut;
 
 /**
  *
@@ -32,11 +35,11 @@ public class SAP
     public boolean isRootedDAG()
     {
         if( !isDAG()) return false;
-        
+        int oneRoot = 0;
         for (int i = 0; i < dG.V(); i++) {
-            if(dG.outdegree(i) == 0) return true;
+            if(dG.outdegree(i) == 0) oneRoot++;
         }
-        return false;
+        return oneRoot == 1;
     }
     
     //Shortest ancestral path between v and w
@@ -50,29 +53,21 @@ public class SAP
     
     public int ancestor(int v, int w)
     {
-        BreadthFirstDirectedPaths bfsV = new BreadthFirstDirectedPaths( dG, v);
-        BreadthFirstDirectedPaths bfsW = new BreadthFirstDirectedPaths( dG, w);
-        
-        int a1 = -1;
-        int a2 = -1;
-        
-        for( int el: bfsV.pathTo(root()))
-        {
-            if(bfsW.hasPathTo(el)) a1 = el;
+    	BreadthFirstDirectedPaths bfsV = new BreadthFirstDirectedPaths(dG, v);
+        BreadthFirstDirectedPaths bfsW = new BreadthFirstDirectedPaths(dG, w);
+        int champion = -1;
+        int minL = Integer.MAX_VALUE;
+        int curL = 0;
+        for(int i = 0; i < dG.V(); i++) {
+        	if(bfsV.hasPathTo(i) && bfsW.hasPathTo(i)) {	//if both sources have a path to an ancestor
+        		curL = bfsV.distTo(i) + bfsW.distTo(i);		//store the distance
+        		if(curL < minL) {							//update the minimum length and the champion
+        			minL =  curL;
+        			champion = i;
+        		}
+        	}
         }
-        
-        for( int el: bfsW.pathTo(root()))
-        {
-            if( bfsV.hasPathTo(el)) a2 = el;
-        }
-        
-        if(bfsV.distTo(a1) < bfsV.distTo(a2) &&
-                bfsW.distTo(a1) < bfsW.distTo(a2))    return a1;
-        
-        if(bfsV.distTo(a2) < bfsV.distTo(a1) 
-                && bfsW.distTo(a2) < bfsW.distTo(a1)) return a2;
-        
-        return -1;
+        return champion;
     }
     
     public int length(Iterable<Integer> v, Iterable<Integer> w)
@@ -88,9 +83,9 @@ public class SAP
         BreadthFirstDirectedPaths bfsV = new BreadthFirstDirectedPaths(dG, v);
         BreadthFirstDirectedPaths bfsW = new BreadthFirstDirectedPaths(dG, w);
         
-        for( int el : bfsV.pathTo(root()))//replace 'v' in both of these with whatever the root is.
+        for( int el : bfsV.pathTo(ancestor(v,w)))//replace 'v' in both of these with whatever the root is.
         {
-            for( int el2 : bfsW.pathTo(root()))
+            for( int el2 : bfsW.pathTo(ancestor(v,w)))
             {
                 if( el == el2) return el;
             }
@@ -119,6 +114,6 @@ public class SAP
     }
     
     public static void main(String[] args) {
-        
+    	
     }
 }
