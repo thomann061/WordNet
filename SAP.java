@@ -1,39 +1,45 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package a06;
+
+import java.util.*;
+
+import org.junit.runner.JUnitCore;
+import org.junit.runner.Result;
 
 import edu.princeton.cs.algs4.BreadthFirstDirectedPaths;
 import edu.princeton.cs.algs4.Digraph;
 import edu.princeton.cs.algs4.DirectedCycle;
-import edu.princeton.cs.introcs.In;
-import edu.princeton.cs.introcs.StdIn;
 import edu.princeton.cs.introcs.StdOut;
 
 /**
- *
- * @author Jarom_2
+ * SAP - used in the @WordNet class.
+ * @author Cameron Vernon
+ * @author Jacob Thomann
  */
-public class SAP 
-{
+public class SAP {
     private Digraph dG;
     
-    
-    public SAP(Digraph G)
-    {
+    /**
+     * Constructor takes a @Digraph (not just a DAG)
+     * @param G  the Digraph
+     */
+    public SAP(Digraph G)  {
         dG = new Digraph(G);
     }
     
-    public boolean isDAG()
-    {
+    /**
+     * Is the digraph a directed acyclic graph?
+     * @return  boolean
+     */
+    public boolean isDAG()  {
         DirectedCycle dc = new DirectedCycle(dG);
         return !dc.hasCycle();
     }
     
-    public boolean isRootedDAG()
-    {
+    /**
+     * is the digraph a rooted DAG?
+     * @return  boolean
+     */
+    public boolean isRootedDAG()  {
         if( !isDAG()) return false;
         int oneRoot = 0;
         for (int i = 0; i < dG.V(); i++) {
@@ -42,78 +48,124 @@ public class SAP
         return oneRoot == 1;
     }
     
-    //Shortest ancestral path between v and w
-    public int length(int v, int w)
-    {   
-        BreadthFirstDirectedPaths bfs = new BreadthFirstDirectedPaths( dG, v);
-        BreadthFirstDirectedPaths bfs2 = new BreadthFirstDirectedPaths( dG, w);
-        
-        return bfs.distTo(ancestor(v,w)) + bfs2.distTo(ancestor(v,w));
-    }
-    
-    public int ancestor(int v, int w)
-    {
+    /**
+     * length of shortest ancestral path between v and w; -1 if no such path
+     * @param v  vertex 1
+     * @param w  vertex 2
+     * @return   int length
+     */
+    public int length(int v, int w)  {   
+    	if(v < 0 || v > dG.V() - 1 || w < 0 || w > dG.V() - 1) throw new IndexOutOfBoundsException();
     	BreadthFirstDirectedPaths bfsV = new BreadthFirstDirectedPaths(dG, v);
         BreadthFirstDirectedPaths bfsW = new BreadthFirstDirectedPaths(dG, w);
-        int champion = -1;
         int minL = Integer.MAX_VALUE;
         int curL = 0;
         for(int i = 0; i < dG.V(); i++) {
-        	if(bfsV.hasPathTo(i) && bfsW.hasPathTo(i)) {	//if both sources have a path to an ancestor
-        		curL = bfsV.distTo(i) + bfsW.distTo(i);		//store the distance
-        		if(curL < minL) {							//update the minimum length and the champion
+        	if(bfsV.hasPathTo(i) && bfsW.hasPathTo(i)) {
+        		curL = bfsV.distTo(i) + bfsW.distTo(i);	
+        		if(curL < minL) {							
         			minL =  curL;
-        			champion = i;
         		}
         	}
         }
-        return champion;
+        if(minL == Integer.MAX_VALUE)  minL = -1;
+        return minL;
     }
     
-    public int length(Iterable<Integer> v, Iterable<Integer> w)
-    {
-        BreadthFirstDirectedPaths bfsV = new BreadthFirstDirectedPaths(dG, v);
+    /**
+     * a common ancestor of v and w that participates in a shortest ancestral path; -1 if no such path
+     * @param v  vertex 1
+     * @param w  vertex 2
+     * @return   int ancestor
+     */
+    public int ancestor(int v, int w)  {
+    	if(v < 0 || v > dG.V() - 1 || w < 0 || w > dG.V() - 1) throw new IndexOutOfBoundsException();
+    	BreadthFirstDirectedPaths bfsV = new BreadthFirstDirectedPaths(dG, v);
         BreadthFirstDirectedPaths bfsW = new BreadthFirstDirectedPaths(dG, w);
-        
-        return bfsV.distTo(ancestor( v, w)) + bfsW.distTo(ancestor(v,w));
+        int ancestor = -1;
+        int minL = Integer.MAX_VALUE;
+        int curL = 0;
+        for(int i = 0; i < dG.V(); i++) {
+        	if(bfsV.hasPathTo(i) && bfsW.hasPathTo(i)) {	
+        		curL = bfsV.distTo(i) + bfsW.distTo(i);
+        		if(curL < minL) {						
+        			minL =  curL;
+        			ancestor = i;
+        		}
+        	}
+        }
+        return ancestor;
     }
     
-    public int ancestor(Iterable<Integer> v, Iterable<Integer> w)
-    {
-        BreadthFirstDirectedPaths bfsV = new BreadthFirstDirectedPaths(dG, v);
+    /**
+     * length of shortest ancestral path between any vertex in v and any vertex in w; -1 if no such path
+     * @param v  vertex 1
+     * @param w  vertex 2
+     * @return   int length
+     */
+    public int length(Iterable<Integer> v, Iterable<Integer> w)  {
+    	checkByIterator(v, w);
+    	BreadthFirstDirectedPaths bfsV = new BreadthFirstDirectedPaths(dG, v);
         BreadthFirstDirectedPaths bfsW = new BreadthFirstDirectedPaths(dG, w);
-        
-        for( int el : bfsV.pathTo(ancestor(v,w)))//replace 'v' in both of these with whatever the root is.
-        {
-            for( int el2 : bfsW.pathTo(ancestor(v,w)))
-            {
-                if( el == el2) return el;
-            }
+        int minL = Integer.MAX_VALUE;
+        int curL = 0;
+        for(int i = 0; i < dG.V(); i++) {
+        	if(bfsV.hasPathTo(i) && bfsW.hasPathTo(i)) {
+        		curL = bfsV.distTo(i) + bfsW.distTo(i);		
+        		if(curL < minL) {							
+        			minL =  curL;
+        		}
+        	}
         }
-        
-        return -1;
-        
-        /*
-            What I could do is create a single for-each loop with a sentinel variable that
-            controls the index of the internal or opposite list.
-            
-            Or I can iterate through a single list and see if it has a path to the each of one
-            the elements of the opposite.
-        */
+        if(minL == Integer.MAX_VALUE)  minL = -1;
+        return minL;
     }
     
-    private int root()
-    {
-        int root = -1;
-        for(int i = 0; i < dG.V(); i++)
-        {
-            if( dG.outdegree(i) == 0) root = i;
+    /**
+     * a common ancestor that participates in shortest ancestral path; -1 if no such path
+     * @param v  vertex 1
+     * @param w  vertex 2
+     * @return   int ancestor
+     */
+    public int ancestor(Iterable<Integer> v, Iterable<Integer> w)  {
+    	checkByIterator(v, w);
+    	BreadthFirstDirectedPaths bfsV = new BreadthFirstDirectedPaths(dG, v);
+        BreadthFirstDirectedPaths bfsW = new BreadthFirstDirectedPaths(dG, w);
+        int ancestor = -1;
+        int minL = Integer.MAX_VALUE;
+        int curL = 0;
+        for(int i = 0; i < dG.V(); i++) {
+        	if(bfsV.hasPathTo(i) && bfsW.hasPathTo(i)) {	
+        		curL = bfsV.distTo(i) + bfsW.distTo(i);
+        		if(curL < minL) {						
+        			minL =  curL;
+        			ancestor = i;
+        		}
+        	}
         }
-        
-        return root;
+        return ancestor;
     }
     
+    private void checkByIterator(Iterable<Integer> v, Iterable<Integer> w) {
+    	Iterator<Integer> v1 = v.iterator();
+    	Iterator<Integer> w1 = w.iterator();
+    	while(v1.hasNext()) {
+    		Integer t = v1.next();
+    		if(t < 0 || t > dG.V() - 1) throw new IndexOutOfBoundsException();
+    	}
+    	while(w1.hasNext()) {
+    		Integer t = w1.next();
+    		if(t < 0 || t > dG.V() - 1) throw new IndexOutOfBoundsException();
+    	}
+    }
+    
+    //unit testing
     public static void main(String[] args) {
-    	
+    	Result result = JUnitCore.runClasses(SAPTest.class);
+		
+		StdOut.println("Number of runs: " + result.getRunCount());
+		StdOut.println("Number of failed runs: " + result.getFailureCount());
+		StdOut.println("Number of successful runs: " + (result.getRunCount() - result.getFailureCount()));
+		StdOut.println("Test was successful: " + result.wasSuccessful());
     }
 }
